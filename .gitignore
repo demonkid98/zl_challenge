@@ -75,3 +75,6 @@ logs/tensorboard/*
 
 # data
 data/
+
+# private
+scripts/pri_*
