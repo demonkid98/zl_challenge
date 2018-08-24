@@ -3,6 +3,7 @@ from __future__ import absolute_import, division, print_function
 import os
 from torch.utils import data
 from PIL import Image
+import logging
 
 
 
@@ -22,11 +23,12 @@ class ZaloLandmarkDataset(data.Dataset):
         record = self.records.iloc[idx]
         img_name = os.path.join(self.root_dir, str(record['category']), '{}.jpg'.format(record['id']))
         try:
-            image = Image.open(img_name)
-        except IOError:
-            return None
+            image = Image.open(img_name).convert('RGB')
+            if self.transform:
+                image = self.transform(image)
 
-        if self.transform:
-            image = self.transform(image)
+        except IOError:
+            logging.error('IO error %s', img_name)
+            return None
 
         return image, record['id'], record['category']

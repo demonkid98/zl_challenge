@@ -145,8 +145,9 @@ if __name__ == '__main__':
                     optimizer.step()
 
                 # statistics
+                nb_corrects = torch.sum(preds == labels.data)
                 running_loss += loss.data[0]
-                running_corrects += torch.sum(preds == labels.data)
+                running_corrects += nb_corrects
                 batch_count += 1
 
                 if phase == 'train' and (i + 1) % args.log_freq == 0:
