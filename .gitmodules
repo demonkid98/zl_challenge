@@ -1,0 +1,3 @@
+[submodule "pretrained-models.pytorch"]
+	path = pretrained-models.pytorch
+	url = https://github.com/Cadene/pretrained-models.pytorch.git
