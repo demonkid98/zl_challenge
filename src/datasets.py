@@ -21,7 +21,10 @@ class ZaloLandmarkDataset(data.Dataset):
     def __getitem__(self, idx):
         record = self.records.iloc[idx]
         img_name = os.path.join(self.root_dir, str(record['category']), '{}.jpg'.format(record['id']))
-        image = Image.open(img_name)
+        try:
+            image = Image.open(img_name)
+        except IOError:
+            return None
 
         if self.transform:
             image = self.transform(image)

@@ -18,6 +18,10 @@ from torch.utils import data
 
 from datasets import ZaloLandmarkDataset
 
+def skip_error_collate(batch):
+    batch = filter(lambda x: x is not None, batch)
+    return data.dataloader.default_collate(batch)
+
 if __name__ == '__main__':
     logging.basicConfig(format='[%(asctime)s][%(levelname)s] %(message)s', level=logging.INFO)
 
@@ -73,7 +77,8 @@ if __name__ == '__main__':
         'train': ZaloLandmarkDataset(args.img_dir, dftr, transform=data_transforms['train']),
         'val': ZaloLandmarkDataset(args.img_dir, dfte, transform=data_transforms['val']),
     }
-    dataloaders = {x: data.DataLoader(datasets[x], batch_size=args.batch_size, shuffle=True, num_workers=args.nb_workers)
+    dataloaders = {x: data.DataLoader(datasets[x], batch_size=args.batch_size, shuffle=True,
+            num_workers=args.nb_workers, collate_fn=skip_error_collate)
             for x in ['train', 'val']}
     dataset_sizes = {x: len(datasets[x]) for x in ['train', 'val']}
 
