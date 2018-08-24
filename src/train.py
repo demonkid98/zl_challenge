@@ -7,6 +7,7 @@ import argparse
 import logging
 import glob
 import datetime
+import sys
 
 import torchvision
 from torchvision import transforms, datasets
@@ -17,6 +18,9 @@ from torch.optim import lr_scheduler
 from torch.utils import data
 
 from datasets import ZaloLandmarkDataset
+
+sys.path.append('../pretrained-models.pytorch/pretrainedmodels')
+from models import resnext
 
 def skip_error_collate(batch):
     batch = filter(lambda x: x is not None, batch)
@@ -30,7 +34,7 @@ if __name__ == '__main__':
     parser.add_argument('--nb_epochs', default=20, type=int)
     parser.add_argument('--nb_workers', default=2, type=int)
     parser.add_argument('--gpu', action='store_true')
-    parser.add_argument('--base_model', choices=['resnet18', 'resnet50', 'resnet101'])
+    parser.add_argument('--base_model', choices=['resnet18', 'resnet50', 'resnet101', 'resnext101_64x4d'])
     parser.add_argument('--img_dir', required=True)
     parser.add_argument('--train_filelist', required=True)
     parser.add_argument('--test_filelist', required=True)
@@ -84,13 +88,20 @@ if __name__ == '__main__':
 
     if args.base_model == 'resnet18':
         mo = torchvision.models.resnet18(pretrained=True)
+        num_ftrs = mo.fc.in_features
+        mo.fc = nn.Linear(num_ftrs, nb_classes)
     elif args.base_model == 'resnet50':
         mo = torchvision.models.resnet50(pretrained=True)
+        num_ftrs = mo.fc.in_features
+        mo.fc = nn.Linear(num_ftrs, nb_classes)
     elif args.base_model == 'resnet101':
         mo = torchvision.models.resnet101(pretrained=True)
-
-    num_ftrs = mo.fc.in_features
-    mo.fc = nn.Linear(num_ftrs, nb_classes)
+        num_ftrs = mo.fc.in_features
+        mo.fc = nn.Linear(num_ftrs, nb_classes)
+    elif args.base_model == 'resnext101_64x4d':
+        mo = resnext.resnext101_64x4d(pretrained='imagenet')
+        num_ftrs = mo.last_linear.in_features
+        mo.last_linear = nn.Linear(num_ftrs, nb_classes)
 
     if args.gpu:
         mo.cuda()
