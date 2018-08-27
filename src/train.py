@@ -107,7 +107,8 @@ if __name__ == '__main__':
         mo.cuda()
 
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(list(filter(lambda p: p.requires_grad, mo.parameters())), lr=0.001, momentum=0.9)
+    optimizer = optim.SGD(list(filter(lambda p: p.requires_grad, mo.parameters())), lr=0.001,
+            momentum=0.9, weight_decay=4e-5)
 
     if args.model_state_path is not None and os.path.isfile(args.model_state_path):
         checkpoint = torch.load(args.model_state_path, map_location='cuda:0' if args.gpu else 'cpu')
@@ -127,8 +128,10 @@ if __name__ == '__main__':
         for phase in ['train', 'val']:
             if phase == 'train':
                 mo.train()  # Set model to training mode
+                volatile = False
             else:
                 mo.eval()   # Set model to evaluate mode
+                volatile = True
 
             running_loss = 0.0
             running_corrects = 0
@@ -137,8 +140,8 @@ if __name__ == '__main__':
             # Iterate over data.
             for i, (inputs, _, labels) in enumerate(dataloaders[phase]):
                 if args.gpu:
-                    inputs = Variable(inputs.cuda())
-                    labels = Variable(labels.cuda())
+                    inputs = Variable(inputs.cuda(), volatile=volatile)
+                    labels = Variable(labels.cuda(), volatile=volatile)
                 else:
                     inputs, labels = Variable(inputs), Variable(labels)
 
