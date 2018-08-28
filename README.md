@@ -32,3 +32,15 @@ CUDA_VISIBLE_DEVICES=0 python -m train \
   --checkpoint_dir /tmp \
   --checkpoint_freq 1
 ```
+
+## predict
+```
+cd src
+python -m predict \
+  --base_model resnet101 \
+  --batch_size 4 \
+  --nb_workers 1 \
+  --img_dir ../data/Public \
+  --log_freq 100 \
+  --model_state_path []
+```
