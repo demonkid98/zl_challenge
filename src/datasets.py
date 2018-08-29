@@ -37,9 +37,9 @@ class ZaloUnlabeledLandmarkDataset(data.Dataset):
     '''
         ids: array of ids
     '''
-    def __init__(self, root_dir, transform=None):
-        self.ext = 'jpg'
-        files = glob.glob(os.path.join(root_dir, '*.{}'.format(self.ext)))
+    def __init__(self, root_dir, pattern='*.jpg', transform=None):
+        self.ext = pattern.split('.')[-1]
+        files = glob.glob(os.path.join(root_dir, pattern))
         ids = [f.split('/')[-1].replace('.{}'.format(self.ext), '') for f in files]
         self.root_dir = root_dir
         self.ids = ids
@@ -49,7 +49,7 @@ class ZaloUnlabeledLandmarkDataset(data.Dataset):
         return len(self.ids)
 
     def __getitem__(self, idx):
-        img_name = os.path.join(self.root_dir, '{}.jpg'.format(self.ids[idx]))
+        img_name = os.path.join(self.root_dir, '{}.{}'.format(self.ids[idx], self.ext))
         try:
             image = Image.open(img_name).convert('RGB')
             if self.transform:
