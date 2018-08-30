@@ -44,3 +44,15 @@ python -m predict \
   --log_freq 100 \
   --model_state_path []
 ```
+
+## retrieve
+```
+cd src
+python -m retrieve \
+    --feats_index_npz ../tmp/resnet101_120_trainval_feats-gap.npz \
+    --feats_query_npz ../tmp/resnet101_120_public_feats-gap.npz \
+    --norm \
+    --k 64 \
+    --index_choice flat \
+    --out_fname ../tmp/resnet101_120_feats-spp_retrieve_flat.npz"
+```
