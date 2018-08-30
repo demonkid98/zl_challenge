@@ -56,3 +56,13 @@ python -m retrieve \
     --index_choice flat \
     --out_fname ../tmp/resnet101_120_feats-spp_retrieve_flat.npz"
 ```
+
+## knn classify
+```
+python -m knn_classify \
+    --input_npz ../tmp/resnet101_120_feats-gap_retrieve_flat.npz" \
+    --ref_csv ../data/train_val.csv" \
+    --k 11 \
+    --nb_picks 3 \
+    --out_fname ../tmp/resnet101_120_feats-gap_retrieve_flat_knn_k=11.csv"
+```
