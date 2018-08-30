@@ -8,6 +8,7 @@ import logging
 import glob
 import datetime
 import sys
+import functools
 
 import torchvision
 from torchvision import transforms, datasets
@@ -21,6 +22,7 @@ from datasets import ZaloUnlabeledLandmarkDataset
 sys.path.append('../pretrained-models.pytorch/pretrainedmodels')
 from models import resnext
 import features as ft
+import pooling as p
 
 def skip_error_collate(batch):
     batch = filter(lambda x: x is not None, batch)
@@ -33,7 +35,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', default=32, type=int)
     parser.add_argument('--nb_workers', default=2, type=int)
     parser.add_argument('--gpu', action='store_true')
-    # parser.add_argument('--compact', action='store_true')
+    parser.add_argument('--pooling', choices=['compact', 'gap', 'spp'], default='compact')
     parser.add_argument('--nb_classes', default=103, type=int)
     parser.add_argument('--base_model', choices=['resnet18', 'resnet50', 'resnet101', 'resnext101_64x4d'])
     parser.add_argument('--img_dir', required=True)
@@ -62,9 +64,12 @@ if __name__ == '__main__':
         tensorize,
     ])
 
-    dataset = ZaloUnlabeledLandmarkDataset(args.img_dir, transform=xform)
-    dataloader = data.DataLoader(dataset, batch_size=args.batch_size, shuffle=False,
-            num_workers=args.nb_workers, collate_fn=skip_error_collate)
+    if args.pooling == 'compact':
+        dataset = ZaloUnlabeledLandmarkDataset(args.img_dir, args.img_pattern, transform=xform)
+        dataloader = data.DataLoader(dataset, batch_size=args.batch_size, shuffle=False,
+                num_workers=args.nb_workers, collate_fn=skip_error_collate)
+    else:
+        dataset = ZaloUnlabeledLandmarkDataset(args.img_dir, args.img_pattern)
     dataset_size = len(dataset)
 
     if args.base_model == 'resnet18':
@@ -98,21 +103,50 @@ if __name__ == '__main__':
     buffer_ids = []
     buffer_outs = []
 
-    # Iterate over data.
-    for i, (inputs, ids) in enumerate(dataloader):
-        if args.gpu:
-            inputs = Variable(inputs.cuda(), volatile=volatile)
+    if args.pooling == 'compact':
+        # Iterate over data.
+        for i, (inputs, ids) in enumerate(dataloader):
+            if args.gpu:
+                inputs = Variable(inputs.cuda(), volatile=volatile)
+            else:
+                inputs = Variable(inputs)
+
+            # forward
+            outputs = ft.compact(inputs, mo)
+
+            buffer_ids.append(ids)
+            buffer_outs.append(outputs)
+
+            if (i + 1) % args.log_freq == 0:
+                logging.info('  %d/%d', i + 1, len(dataloader))
+    else:
+        if args.pooling == 'gap':
+            def f(x):
+                x = ft.last_conv(x, mo)
+                x = p.gap(x)
+                return x
         else:
-            inputs = Variable(inputs)
+            def f(x):
+                x = p.spp(x, functools.partial(ft.last_conv, mo=mo))
+                return x
+        for i, item in enumerate(dataset):
+            if item is None:
+                continue
 
-        # forward
-        outputs = ft.compact(inputs, mo)
+            (img, idx) = item
+            tensor = tensorize(img).unsqueeze(0)
+            if args.gpu:
+                inputs = Variable(tensor.cuda(), volatile=volatile)
+            else:
+                inputs = Variable(tensor)
 
-        buffer_ids.append(ids)
-        buffer_outs.append(outputs)
+            x = f(inputs)
 
-        if (i + 1) % args.log_freq == 0:
-            logging.info('  %d/%d', i + 1, len(dataloader))
+            buffer_ids.append([idx])
+            buffer_outs.append(x)
+
+            if (i + 1) % args.log_freq == 0:
+                logging.info('  %d/%d', i + 1, len(dataset))
 
     merged_ids = np.array([idx for tup in buffer_ids for idx in tup])
     merged_outs = torch.cat(buffer_outs, dim=0).data.cpu().numpy()
